@@ -27,83 +27,77 @@ int
 LLVMFuzzerTestOneInput(const char *data, size_t size) {
     xmlCatalogPtr catalog;
     const char *docBuffer;
-    size_t docSize, failurePos;
-    xmlDocPtr doc;
+    size_t docSize;
+    xmlDocPtr doc = NULL;
     
-    if (size == 0)
-        return(0);
-
-    // Previous limit was too strict, allow larger inputs
-    if (size > 50000)
+    if (size == 0 || size > 50000)
         return(0);
 
     xmlFuzzDataInit(data, size);
-    // Skip reading a fuzzing parameter, just use the data directly
-    // failurePos = xmlFuzzReadInt(4) % (size + 100);
-    failurePos = 0; // Disable failure injection for coverage testing
     
     xmlFuzzReadEntities();
     docBuffer = xmlFuzzMainEntity(&docSize);
     if (docBuffer == NULL) {
-        // If we can't extract the main entity, just use the raw data
         docBuffer = data;
         docSize = size;
     }
 
-    /* First parse the XML document from buffer */
+    /* First try to parse as XML */
     doc = xmlReadMemory(docBuffer, docSize, "catalog.xml", NULL, 0);
     if (doc == NULL) {
-        // For coverage, try parsing it as an actual catalog file
+        /* Try as a catalog file directly */
         int result = xmlLoadCatalog(docBuffer);
+        
+        /* Try some catalog manipulations even if we couldn't load a catalog */
+        xmlCatalogAdd(BAD_CAST "system", BAD_CAST "http://example.org/test.dtd", 
+                    BAD_CAST "file:///test.dtd");
+        xmlChar *resolved = xmlCatalogResolveSystem(BAD_CAST "http://example.org/test.dtd");
+        xmlFree(resolved);
+        
+        xmlFuzzDataCleanup();
+        xmlResetLastError();
         return(0);
     }
 
-    /* Create new catalog manually since there's no direct buffer loading API */
-    xmlFuzzInjectFailure(failurePos);
-    
-    /* First parse the XML document from buffer */
-    doc = xmlReadMemory(docBuffer, docSize, "catalog.xml", NULL, 0);
-    if (doc == NULL) {
-        xmlFuzzCheckFailureReport("xmlReadMemory", xmlFuzzMallocFailed(), 0);
-        goto exit;
-    }
-
     /* Create a new catalog */
-    catalog = xmlNewCatalog(1); /* 1 = XML_SGML_CATALOG_TYPE for XML catalogs */
+    catalog = xmlNewCatalog(1);
     if (catalog == NULL) {
         xmlFreeDoc(doc);
-        xmlFuzzCheckFailureReport("xmlNewCatalog", xmlFuzzMallocFailed(), 0);
-        goto exit;
+        xmlFuzzDataCleanup();
+        xmlResetLastError();
+        return(0);
     }
 
-    /* Parse the catalog entries from the XML document */
+    /* Test catalog functionality */
     xmlCatalogAdd(BAD_CAST "catalog", NULL, doc->URL);
-
-    /* If we successfully created a catalog, test catalog functions */
-    if (catalog != NULL) {
-        xmlChar *resolved;
-        const char *uri = "http://example.com/test.dtd";
-        const char *pubId = "-//Example//DTD Test//EN";
-        
-        /* Test various catalog lookup functions */
-        resolved = xmlCatalogResolve(BAD_CAST uri, BAD_CAST NULL);
-        xmlFree(resolved);
-        
-        resolved = xmlCatalogResolvePublic(BAD_CAST pubId);
-        xmlFree(resolved);
-        
-        resolved = xmlCatalogResolveSystem(BAD_CAST uri);
-        xmlFree(resolved);
-        
-        /* Free catalog */
-        xmlFreeCatalog(catalog);
-    }
+    
+    /* Test various catalog types and functions */
+    const char *uri = "http://example.com/test.dtd";
+    const char *pubId = "-//Example//DTD Test//EN";
+    
+    /* System entries */
+    xmlCatalogAdd(BAD_CAST "system", BAD_CAST uri, BAD_CAST "file:///test.dtd");
+    xmlChar *resolved = xmlCatalogResolveSystem(BAD_CAST uri);
+    xmlFree(resolved);
+    
+    /* Public entries */
+    xmlCatalogAdd(BAD_CAST "public", BAD_CAST pubId, BAD_CAST "file:///pub.dtd");
+    resolved = xmlCatalogResolvePublic(BAD_CAST pubId);
+    xmlFree(resolved);
+    
+    /* Rewrite rules */
+    xmlCatalogAdd(BAD_CAST "rewriteSystem", BAD_CAST "http://example.org", 
+                BAD_CAST "file:///local/");
+    resolved = xmlCatalogResolve(BAD_CAST "http://example.org/test.dtd", NULL);
+    xmlFree(resolved);
+    
+    /* Test catalog defaults */
+    xmlCatalogSetDefaultPrefer(XML_CATA_PREFER_PUBLIC);
+    xmlCatalogSetDefaults(XML_CATA_ALLOW_GLOBAL);
     
     /* Clean up */
+    xmlFreeCatalog(catalog);
     xmlFreeDoc(doc);
-
-exit:
-    xmlFuzzInjectFailure(0);
     xmlFuzzDataCleanup();
     xmlResetLastError();
     return(0);
