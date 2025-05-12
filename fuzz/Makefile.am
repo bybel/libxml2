@@ -1,12 +1,12 @@
 AUTOMAKE_OPTIONS = -Wno-syntax
 EXTRA_PROGRAMS = genSeed \
-		 api html lint reader regexp schema uri valid xinclude \
+		 api catalog html lint reader regexp schema uri valid xinclude \
 		 xml xpath
 check_PROGRAMS = testFuzzer
-EXTRA_DIST = html.dict regexp.dict schema.dict xml.dict xpath.dict \
+EXTRA_DIST = catalog.dict html.dict regexp.dict schema.dict xml.dict xpath.dict \
 	     static_seed/uri static_seed/regexp fuzz.h
 CLEANFILES = $(EXTRA_PROGRAMS)
-AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include
 DEPENDENCIES = $(top_builddir)/libxml2.la
 LDADD = $(top_builddir)/libxml2.la
 
@@ -45,6 +45,22 @@ clean-local: clean-corpus
 # Seed corpus
 
 genSeed_SOURCES = genSeed.c fuzz.c
+
+# Catalog fuzzer
+seed/catalog.stamp: genSeed$(EXEEXT)
+	@mkdir -p seed/catalog
+	@touch $@
+
+catalog_SOURCES = catalog.c fuzz.c
+catalog_LDFLAGS = $(AM_LDFLAGS) -fsanitize=fuzzer
+
+fuzz-catalog: catalog$(EXEEXT) seed/catalog.stamp
+	@mkdir -p corpus/catalog
+	./catalog$(EXEEXT) \
+		-dict=catalog.dict \
+		-max_len=10000 \
+		$$XML_FUZZ_OPTIONS \
+		corpus/catalog seed/catalog
 
 # XML fuzzer
 

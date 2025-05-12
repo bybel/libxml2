@@ -18,6 +18,12 @@ else
     CONFIG='--with-zlib --with-lzma'
 fi
 
+if [ "$SANITIZER" = coverage ]; then
+    export CFLAGS="$CFLAGS -fprofile-instr-generate -fcoverage-mapping"
+    export CXXFLAGS="$CXXFLAGS -fprofile-instr-generate -fcoverage-mapping"
+    export LDFLAGS="$LDFLAGS -fprofile-instr-generate -fcoverage-mapping"
+fi
+
 # Workaround for a LeakSanitizer crashes,
 # see https://github.com/google/oss-fuzz/issues/11798.
 if [ "$ARCHITECTURE" = "aarch64" ]; then
@@ -39,7 +45,7 @@ make clean-corpus
 make fuzz.o
 
 for fuzzer in \
-    api html lint reader regexp schema uri valid xinclude xml xpath
+    api catalog html lint reader regexp schema uri valid xinclude xml xpath
 do
     OBJS="$fuzzer.o"
     if [ "$fuzzer" = lint ]; then
