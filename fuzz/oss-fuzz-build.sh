@@ -21,7 +21,7 @@ fi
 if [ "$SANITIZER" = coverage ]; then
     export CFLAGS="$CFLAGS -fprofile-instr-generate -fcoverage-mapping"
     export CXXFLAGS="$CXXFLAGS -fprofile-instr-generate -fcoverage-mapping"
-    export LDFLAGS="$LDFLAGS -fprofile-instr-generate -fcoverage-mapping"
+    export LDFLAGS="${LDFLAGS} -fprofile-instr-generate -fcoverage-mapping"
 fi
 
 # Workaround for a LeakSanitizer crashes,
