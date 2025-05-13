@@ -1,7 +1,6 @@
 /*
  * catalog.c: a libFuzzer target to test the XML catalog parser and processor.
  *
- * See Copyright for the status of this software.
  */
 
 #include <libxml/catalog.h>
