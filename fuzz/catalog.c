@@ -79,7 +79,9 @@ LLVMFuzzerTestOneInput(const char *data, size_t size) {
     xmlCatalogAdd(BAD_CAST "rewriteSystem", BAD_CAST "http://example.org", 
                 BAD_CAST "file:///local/");
     resolved = xmlCatalogResolve(BAD_CAST "http://example.org/test.dtd", NULL);
-    xmlFree(resolved);
+    if (resolved != NULL) {  // Avoid dereferencing NULL
+        xmlFree(resolved);
+    }
     
     /* Test catalog defaults */
     xmlCatalogSetDefaultPrefer(XML_CATA_PREFER_PUBLIC);
