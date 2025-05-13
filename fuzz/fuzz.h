@@ -21,6 +21,10 @@ extern "C" {
   #define ATTRIBUTE_UNUSED
 #endif
 
+#if defined(LIBXML_CATALOG_ENABLED)
+  #define HAVE_CATALOG_FUZZER
+#endif
+
 #if defined(LIBXML_HTML_ENABLED)
   #define HAVE_HTML_FUZZER
 #endif

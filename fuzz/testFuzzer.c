@@ -150,6 +150,20 @@ size_t fuzzXPathMutate(char *data, size_t size, size_t maxSize,
 #undef LLVMFuzzerCustomMutator
 #endif
 
+#ifdef HAVE_CATALOG_FUZZER
+int fuzzCatalogInit(int *argc, char ***argv);
+int fuzzCatalog(const char *data, size_t size);
+size_t fuzzCatalogMutate(char *data, size_t size, size_t maxSize,
+                     unsigned seed);
+#define LLVMFuzzerInitialize fuzzCatalogInit
+#define LLVMFuzzerTestOneInput fuzzCatalog
+#define LLVMFuzzerCustomMutator fuzzCatalogMutate
+#include "catalog.c"
+#undef LLVMFuzzerInitialize
+#undef LLVMFuzzerTestOneInput
+#undef LLVMFuzzerCustomMutator
+#endif
+
 typedef int
 (*initFunc)(int *argc, char ***argv);
 typedef int
@@ -313,6 +327,11 @@ main(void) {
 #ifdef HAVE_XPATH_FUZZER
     if (testFuzzer(fuzzXPathInit, fuzzXPath, fuzzXPathMutate,
                    "seed/xpath/*") != 0)
+        ret = 1;
+#endif
+#ifdef HAVE_CATALOG_FUZZER
+    if (testFuzzer(fuzzCatalogInit, fuzzCatalog, fuzzCatalogMutate,
+                   "seed/catalog/*") != 0)
         ret = 1;
 #endif
 

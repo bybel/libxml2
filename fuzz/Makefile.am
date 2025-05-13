@@ -49,16 +49,17 @@ genSeed_SOURCES = genSeed.c fuzz.c
 # Catalog fuzzer
 seed/catalog.stamp: genSeed$(EXEEXT)
 	@mkdir -p seed/catalog
-	@touch $@
+	./genSeed$(EXEEXT) catalog '$(top_srcdir)/test/catalogs/*.xml'
+	@touch seed/catalog.stamp
 
 catalog_SOURCES = catalog.c fuzz.c
-catalog_LDFLAGS = $(AM_LDFLAGS) -fsanitize=fuzzer
+catalog_LDFLAGS = $(AM_LDFLAGS) -fsanitize=address,fuzzer
 
 fuzz-catalog: catalog$(EXEEXT) seed/catalog.stamp
 	@mkdir -p corpus/catalog
 	./catalog$(EXEEXT) \
 		-dict=catalog.dict \
-		-max_len=10000 \
+		-max_len=$(XML_MAX_LEN) \
 		$$XML_FUZZ_OPTIONS \
 		corpus/catalog seed/catalog
 

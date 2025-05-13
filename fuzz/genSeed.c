@@ -634,6 +634,11 @@ main(int argc, const char **argv) {
         globalData.flags |= FLAG_LINT;
         globalData.processFile = processXml;
 #endif
+    } else if (strcmp(fuzzer, "catalog") == 0) {
+#ifdef HAVE_CATALOG_FUZZER
+        processArg = processPattern;
+        globalData.processFile = processXml;
+#endif
     } else if (strcmp(fuzzer, "reader") == 0) {
 #ifdef HAVE_READER_FUZZER
         processArg = processPattern;
