@@ -3,6 +3,8 @@
 # OSS-Fuzz integration, see
 # https://github.com/google/oss-fuzz/tree/master/projects/libxml2
 
+LDFLAGS="${LDFLAGS:-}"
+
 # Add extra UBSan checks
 if [ "$SANITIZER" = undefined ]; then
     extra_checks="integer,float-divide-by-zero"
