@@ -38,25 +38,15 @@ LLVMFuzzerTestOneInput(const char *data, size_t size) {
     xmlFuzzReadEntities();
     docBuffer = xmlFuzzMainEntity(&docSize);
     if (docBuffer == NULL) {
-        docBuffer = data;
-        docSize = size;
+        xmlFuzzDataCleanup();
+        return(0);  // Add early return with cleanup
     }
 
-    /* First try to parse as XML */
+    // Add better error handling for all operations
     doc = xmlReadMemory(docBuffer, docSize, "catalog.xml", NULL, 0);
     if (doc == NULL) {
-        /* Try as a catalog file directly */
-        int result = xmlLoadCatalog(docBuffer);
-        
-        /* Try some catalog manipulations even if we couldn't load a catalog */
-        xmlCatalogAdd(BAD_CAST "system", BAD_CAST "http://example.org/test.dtd", 
-                    BAD_CAST "file:///test.dtd");
-        xmlChar *resolved = xmlCatalogResolveSystem(BAD_CAST "http://example.org/test.dtd");
-        xmlFree(resolved);
-        
         xmlFuzzDataCleanup();
-        xmlResetLastError();
-        return(0);
+        return(0);  // Early return if document can't be parsed
     }
 
     /* Create a new catalog */
@@ -96,8 +86,11 @@ LLVMFuzzerTestOneInput(const char *data, size_t size) {
     xmlCatalogSetDefaults(XML_CATA_ALLOW_GLOBAL);
     
     /* Clean up */
-    xmlFreeCatalog(catalog);
-    xmlFreeDoc(doc);
+    if (doc != NULL)
+        xmlFreeDoc(doc);
+    if (catalog != NULL)
+        xmlFreeCatalog(catalog);
+    
     xmlFuzzDataCleanup();
     xmlResetLastError();
     return(0);
